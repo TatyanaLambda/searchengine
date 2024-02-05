@@ -1,7 +1,10 @@
 package searchengine.services;
 
+import org.springframework.http.ResponseEntity;
+import searchengine.dto.statistics.Response;
+
 public interface IndexingService {
-    boolean indexingAllSites();
-    boolean indexingByUrl(String url);
-    boolean stopIndexing();
+    ResponseEntity<?> indexingAllSites();
+    ResponseEntity<?> indexingByUrl(String url);
+    ResponseEntity<?> stopIndexing();
 }

@@ -3,6 +3,7 @@ package searchengine.model;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -12,6 +13,7 @@ import java.util.Objects;
 
 @Getter
 @Setter
+@ToString
 @NoArgsConstructor
 @Entity
 @Table(name = "`indexes`", indexes = {@Index(
@@ -24,10 +26,12 @@ public class IndexModel implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "page_id", referencedColumnName = "id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @ToString.Exclude
     private  Page page;
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "lemma_id", referencedColumnName = "id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
+    @ToString.Exclude
     private Lemma lemma;
     @Column(name = "`rank`", nullable = false)
     private float rank;
@@ -51,14 +55,6 @@ public class IndexModel implements Serializable {
         return Objects.hash(id, page, lemma, rank);
     }
 
-    @Override
-    public String toString() {
-        return "IndexEntity{" +
-                "id=" + id +
-                ", page=" + page +
-                ", lemma=" + lemma +
-                ", rank=" + rank +
-                '}';
-    }
+
 
 }

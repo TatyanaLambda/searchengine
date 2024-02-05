@@ -1,7 +1,6 @@
 package searchengine.controllers;
 
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.statistics.*;
@@ -35,37 +34,17 @@ public class ApiController {
 
     @GetMapping("/startIndexing")
     public ResponseEntity<?> startIndexing() {
-        if (indexingService.indexingAllSites()) {
-            return new ResponseEntity<>(new Response(true), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(new BadRequest(false, "Индексация уже запущена"),
-                    HttpStatus.BAD_REQUEST);
-        }
+        return indexingService.indexingAllSites();
     }
 
     @GetMapping("/stopIndexing")
     public ResponseEntity<?> stopIndexing() {
-        if (indexingService.stopIndexing()) {
-            return new ResponseEntity<>(new Response(true), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(new BadRequest(false, "Индексация не запущена"),
-                    HttpStatus.BAD_REQUEST);
-        }
-
+        return indexingService.stopIndexing();
     }
 
     @PostMapping("/indexPage")
-    public ResponseEntity<Object> indexPage(@RequestParam(name = "url") String url) {
-        if (url.isEmpty()) {
-            return new ResponseEntity<>(new BadRequest(false, "Не выбран адрес страницы"),
-                    HttpStatus.BAD_REQUEST);
-        } else if (indexingService.indexingByUrl(url)) {
-            return new ResponseEntity<>(new Response(true), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(new BadRequest(false, "Данная страница находится за пределами сайтов, \n" +
-                    "указанных в конфигурационном файле\n"),
-                    HttpStatus.BAD_REQUEST);
-        }
+    public ResponseEntity<?> indexPage(@RequestParam(name = "url") String url) {
+        return indexingService.indexingByUrl(url);
     }
 
     @GetMapping("/search")
@@ -73,24 +52,8 @@ public class ApiController {
                                     @RequestParam(name = "site", required = false, defaultValue = "") String site,
                                     @RequestParam(name = "offset", required = false, defaultValue = "0") int offset,
                                     @RequestParam(name = "limit", required = false, defaultValue = "20") int limit) {
-        if (request.isEmpty()) {
-            return new ResponseEntity<>(new BadRequest(false, "Задан пустой поисковый запрос"),
-                    HttpStatus.BAD_REQUEST);
-        } else {
-            List<SearchData> searchData;
-            if (!site.isEmpty()) {
-                if (siteRepository.findByUrl(site) == null) {
-                    return new ResponseEntity<>(new BadRequest(false, "Заданая страница не найдена"),
-                            HttpStatus.BAD_REQUEST);
-                } else {
-                    searchData = searchService.siteSearch(request, site, offset, limit);
-                }
-            }
-            else {
-                searchData = searchService.allSiteSearch(request, offset, limit);
-            }
-            return new ResponseEntity<>(new SearchResponse(true, searchData.size(), searchData), HttpStatus.OK);
 
-        }
+        return searchService.search(request, site, offset, limit);
+
     }
 }

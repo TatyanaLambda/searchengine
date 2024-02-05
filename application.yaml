@@ -15,7 +15,9 @@ spring:
     # show-sql: true
 indexing-settings:
   sites:
-    - url: https://www.ilovesupersport.ru
-      name: ILoveSupersport.ru
+    #- url: https://www.ilovesupersport.ru
+    #  name: ILoveSupersport.ru
     - url: https://www.playback.ru
       name: PlayBack.Ru
+    #- url: https://guitarlessons.timsto.ru
+    #  name: Гитарная школа Тимофея Столярова

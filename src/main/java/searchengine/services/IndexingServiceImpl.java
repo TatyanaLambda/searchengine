@@ -2,9 +2,13 @@ package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
+import searchengine.dto.statistics.BadRequest;
+import searchengine.dto.statistics.Response;
 import searchengine.model.SitePage;
 import searchengine.model.Status;
 import searchengine.parsers.IndexParser;
@@ -36,64 +40,66 @@ public class IndexingServiceImpl implements IndexingService{
     private final LemmaParser lemmaParser;
     private final IndexParser indexParser;
 
-    private boolean checkExistsUrl(String url) {
-        List<Site> urlList = sitesList.getSites();
-        for (Site site : urlList) {
-            if (site.getUrl().equals(url)) {
-                return true;
-            }
-        }
-        return false;
-    }
     @Override
-    public boolean indexingAllSites() {
+    public ResponseEntity<?> indexingAllSites() {
         if (isIndexingActive()) {
-            log.info("Индексация уже начата");
-            return false;
-        } else {
-            List<Site> siteList = sitesList.getSites();
-            executorService = Executors.newFixedThreadPool(THREAD_COUNT);
-            for (Site site : siteList) {
-                String url = site.getUrl();
-                Site sitePage = new Site();
-                sitePage.setName(site.getName());
-                log.info("Парсинг сайта: " + site.getName());
-                executorService.submit(new SiteParser(siteRepository, pageRepository, lemmaRepository, indexRepository, lemmaParser, indexParser, url, sitesList, THREAD_COUNT));
-            }
-            executorService.shutdown();
+            String errText = "Индексация уже запущена";
+            log.info(errText);
+            return new ResponseEntity<>(new BadRequest(false, errText), HttpStatus.BAD_REQUEST);
         }
-        return true;
+        List<Site> siteList = sitesList.getSites();
+        executorService = Executors.newFixedThreadPool(THREAD_COUNT);
+        for (Site site : siteList) {
+            String url = site.getUrl();
+            Site sitePage = new Site();
+            sitePage.setName(site.getName());
+            log.info("Парсинг сайта: " + site.getName());
+            executorService.submit(new SiteParser(siteRepository, pageRepository, lemmaRepository, indexRepository, lemmaParser, indexParser, url, sitesList, THREAD_COUNT));
+        }
+        return new ResponseEntity<>(new Response(true), HttpStatus.OK);
     }
 
     @Override
-    public boolean indexingByUrl(String url) {
+    public ResponseEntity<?> indexingByUrl(String url) {
         if (checkExistsUrl(url)) {
             log.info("Началась индексация сайта: - " + url);
             executorService = Executors.newFixedThreadPool(THREAD_COUNT);
             executorService.submit(new SiteParser(siteRepository, pageRepository, lemmaRepository, indexRepository, lemmaParser, indexParser, url, sitesList, THREAD_COUNT));
             executorService.shutdown();
-            return true;
+            return new ResponseEntity<>(new Response(true), HttpStatus.OK);
         } else {
-            return false;
+            String errText = "Недопустимый адрес сайта";
+            log.info(errText);
+            return new ResponseEntity<>(new BadRequest(false, errText), HttpStatus.BAD_REQUEST);
         }
     }
 
     @Override
-    public boolean stopIndexing() {
+    public ResponseEntity<?> stopIndexing() {
         if (isIndexingActive()) {
             log.info("Индексация остановлена");
             executorService.shutdownNow();
-            return true;
-        } else {
-            log.info("Индексация не может быть остановлена, так как ещё не начата");
-            return false;
+            return new ResponseEntity<>(new Response(true), HttpStatus.OK);
         }
+        String errText = "Индексация не может быть остановлена, так как ещё не начата";
+        log.info(errText);
+        return new ResponseEntity<>(new BadRequest(false, errText),HttpStatus.BAD_REQUEST);
     }
     private boolean isIndexingActive() {
         siteRepository.flush();
         Iterable<SitePage> siteList = siteRepository.findAll();
         for (SitePage site : siteList) {
             if (site.getStatus() == Status.INDEXING) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean checkExistsUrl(String url) {
+        List<Site> urlList = sitesList.getSites();
+        for (Site site : urlList) {
+            if (site.getUrl().equals(url)) {
                 return true;
             }
         }

@@ -1,9 +1,7 @@
 package searchengine.model;
 
-import lombok.Data;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.*;
 
 import java.util.Objects;
 
@@ -52,7 +50,6 @@ public class Lemma implements Serializable {
     public int hashCode() {
         return Objects.hash(id, siteId, lemma, frequency, index);
     }
-
     @Override
     public String toString() {
         return "Lemma{" +
@@ -63,4 +60,5 @@ public class Lemma implements Serializable {
                 ", index=" + index +
                 '}';
     }
+
 }

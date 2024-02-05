@@ -2,7 +2,10 @@ package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestParam;
 import searchengine.model.IndexModel;
 import searchengine.model.SitePage;
 import searchengine.dto.statistics.*;
@@ -27,47 +30,44 @@ public class SearchServiceImpl implements SearchService {
     private final PageRepository pageRepository;
     private final IndexRepository indexRepository;
     private final SiteRepository siteRepository;
-
     @Override
-    public List<SearchData> allSiteSearch(String searchText, int offset, int limit) {
+    public ResponseEntity<?> search(String request, String site, int offset, int limit){
+        if (request.isEmpty()) {
+            return new ResponseEntity<>(new BadRequest(false, "Задан пустой поисковый запрос"), HttpStatus.BAD_REQUEST);
+        }
+        List<SearchData> searchData;
+        if (!site.isEmpty()) {
+            if (siteRepository.findByUrl(site) == null) {
+                return new ResponseEntity<>(new BadRequest(false, "Заданная страница не найдена"),HttpStatus.BAD_REQUEST);
+            }
+            searchData = siteSearch(request, site, offset, limit);
+        }
+        else {
+            searchData = allSiteSearch(request, offset, limit);
+        }
+        return new ResponseEntity<>(new SearchResponse(true, searchData.size(), searchData), HttpStatus.OK);
+    }
+
+    private List<SearchData> allSiteSearch(String searchText, int offset, int limit) {
         log.info("Получение результата поиска \"" + searchText + "\"");
         List<SitePage> sitePageList = siteRepository.findAll();
-        List<SearchData> result = new ArrayList<>();
         List<Lemma> foundLemmaList = new ArrayList<>();
         List<String> textLemmaList = getLemmaFromSearchText(searchText);
         for (SitePage sitePage : sitePageList) {
             foundLemmaList.addAll(getLemmaListFromSite(textLemmaList, sitePage));
         }
-        List<SearchData> searchData = null;
-        for (Lemma l : foundLemmaList) {
-            if (l.getLemma().equals(searchText)) {
-                searchData = new ArrayList<>(getSearchDtoList(foundLemmaList, textLemmaList, offset, limit));
-                searchData.sort((o1, o2) -> Float.compare(o2.getRelevance(), o1.getRelevance()));
-                if (searchData.size() > limit) {
-                    for (int i = offset; i < limit; i++) {
-                        result.add(searchData.get(i));
-                    }
-                    return result;
-                }
-            } else {
-                try {
-                    throw new Exception();
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
+        List<SearchData> searchData = new ArrayList<>(getSearchDtoList(foundLemmaList, textLemmaList, offset, limit));
+        searchData.sort((o1, o2) -> Float.compare(o2.getRelevance(), o1.getRelevance()));
         log.info("Поиск окончен. Получены результаты.");
         return searchData;
     }
 
-    @Override
-    public List<SearchData> siteSearch(String searchText, String url, int offset, int limit) {
-        log.info("Searching for \"" + searchText + "\" in - " + url);
+    private List<SearchData> siteSearch(String searchText, String url, int offset, int limit) {
+        log.info("Получение результата поиска \"" + searchText + "\" in - " + url);
         SitePage sitePage = siteRepository.findByUrl(url);
         List<String> textLemmaList = getLemmaFromSearchText(searchText);
         List<Lemma> foundLemmaList = getLemmaListFromSite(textLemmaList, sitePage);
-        log.info("Search done. Got results.");
+        log.info("Поиск окончен. Получены результаты.");
         return getSearchDtoList(foundLemmaList, textLemmaList, offset, limit);
     }
 
@@ -91,7 +91,6 @@ public class SearchServiceImpl implements SearchService {
 
     private List<SearchData> getSearchData(Hashtable<Page, Float> pageList, List<String> textLemmaList) {
         List<SearchData> result = new ArrayList<>();
-
         for (Page page : pageList.keySet()) {
             String uri = page.getPath();
             String content = page.getContent();
@@ -99,13 +98,11 @@ public class SearchServiceImpl implements SearchService {
             String site = sitePage.getUrl();
             String siteName = sitePage.getName();
             Float absRelevance = pageList.get(page);
-
             StringBuilder clearContent = new StringBuilder();
             String title = ClearingHtml.clearHtml(content, "title");
             String body = ClearingHtml.clearHtml(content, "body");
             clearContent.append(title).append(" ").append(body);
             String snippet = getSnippet(clearContent.toString(), textLemmaList);
-
             result.add(new SearchData(site, siteName, uri, title, snippet, absRelevance));
         }
         return result;
@@ -119,11 +116,10 @@ public class SearchServiceImpl implements SearchService {
         }
         Collections.sort(lemmaIndex);
         List<String> wordsList = getWordsFromContent(content, lemmaIndex);
-        for (int i = 0; i < wordsList.size(); i++) {
+        int wordListSize = wordsList.size();
+        int limit = Math.min(wordListSize, 3);
+        for (int i = 0; i <= limit; i++) {
             result.append(wordsList.get(i)).append("... ");
-            if (i > 3) {
-                break;
-            }
         }
         return result.toString();
     }
@@ -174,18 +170,19 @@ public class SearchServiceImpl implements SearchService {
             List<IndexModel> foundIndexListModel = indexRepository.findByPagesAndLemmas(lemmaList, foundPageList);
             Hashtable<Page, Float> sortedPageByAbsRelevance = getPageAbsRelevance(foundPageList, foundIndexListModel);
             List<SearchData> dataList = getSearchData(sortedPageByAbsRelevance, textLemmaList);
-
-            if (offset > dataList.size()) {
+            int dataListSize = dataList.size();
+            if (offset > dataListSize) {
                 return new ArrayList<>();
             }
-
-            if (dataList.size() > limit) {
+            if (dataListSize > limit) {
                 for (int i = offset; i < limit; i++) {
                     result.add(dataList.get(i));
                 }
                 return result;
-            } else return dataList;
-        } else return result;
+            }
+            return dataList;
+        }
+        return result;
     }
 
     private Hashtable<Page, Float> getPageAbsRelevance(List<Page> pageList, List<IndexModel> indexModelList) {

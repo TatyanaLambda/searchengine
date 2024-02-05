@@ -1,10 +1,13 @@
 package searchengine.services;
 
+import org.springframework.http.ResponseEntity;
+import searchengine.dto.statistics.Response;
 import searchengine.dto.statistics.SearchData;
 
 import java.util.List;
 
 public interface SearchService {
-    List<SearchData> siteSearch(String query, String site, int offset, int limit);
-    List<SearchData> allSiteSearch(String query, int offset, int limit);
+    ResponseEntity<?> search(String request, String site, int offset, int limit);
+
+
 }
