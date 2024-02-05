@@ -118,7 +118,7 @@ public class SearchServiceImpl implements SearchService {
         List<String> wordsList = getWordsFromContent(content, lemmaIndex);
         int wordListSize = wordsList.size();
         int limit = Math.min(wordListSize, 3);
-        for (int i = 0; i <= limit; i++) {
+        for (int i = 0; i < limit; i++) {
             result.append(wordsList.get(i)).append("... ");
         }
         return result.toString();
