@@ -45,6 +45,14 @@ public class SearchServiceImpl implements SearchService {
         else {
             searchData = allSiteSearch(request, offset, limit);
         }
+        List<SearchData> result = new ArrayList<>();
+        if (searchData.size() > limit) {
+            int max = offset+limit;
+            for (int i = offset; i < max; i++) {
+                result.add(searchData.get(i));
+            }
+            return new ResponseEntity<>(new SearchResponse(true, searchData.size(), result), HttpStatus.OK);
+        }
         return new ResponseEntity<>(new SearchResponse(true, searchData.size(), searchData), HttpStatus.OK);
     }
 
@@ -92,7 +100,7 @@ public class SearchServiceImpl implements SearchService {
     private List<SearchData> getSearchData(Hashtable<Page, Float> pageList, List<String> textLemmaList) {
         List<SearchData> result = new ArrayList<>();
         for (Page page : pageList.keySet()) {
-            String uri = page.getPath();
+            String url = page.getPath();
             String content = page.getContent();
             SitePage sitePage = page.getSiteId();
             String site = sitePage.getUrl();
@@ -103,7 +111,7 @@ public class SearchServiceImpl implements SearchService {
             String body = ClearingHtml.clearHtml(content, "body");
             clearContent.append(title).append(" ").append(body);
             String snippet = getSnippet(clearContent.toString(), textLemmaList);
-            result.add(new SearchData(site, siteName, uri, title, snippet, absRelevance));
+            result.add(new SearchData(site, siteName, url, title, snippet, absRelevance));
         }
         return result;
     }
@@ -162,7 +170,7 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private List<SearchData> getSearchDtoList(List<Lemma> lemmaList, List<String> textLemmaList, int offset, int limit) {
-        List<SearchData> result = new ArrayList<>();
+
         pageRepository.flush();
         if (lemmaList.size() >= textLemmaList.size()) {
             List<Page> foundPageList = pageRepository.findByLemmaList(lemmaList);
@@ -170,19 +178,13 @@ public class SearchServiceImpl implements SearchService {
             List<IndexModel> foundIndexListModel = indexRepository.findByPagesAndLemmas(lemmaList, foundPageList);
             Hashtable<Page, Float> sortedPageByAbsRelevance = getPageAbsRelevance(foundPageList, foundIndexListModel);
             List<SearchData> dataList = getSearchData(sortedPageByAbsRelevance, textLemmaList);
-            int dataListSize = dataList.size();
-            if (offset > dataListSize) {
+            if (offset > dataList.size()) {
                 return new ArrayList<>();
             }
-            if (dataListSize > limit) {
-                for (int i = offset; i < limit; i++) {
-                    result.add(dataList.get(i));
-                }
-                return result;
-            }
+
             return dataList;
         }
-        return result;
+        return new ArrayList<>();
     }
 
     private Hashtable<Page, Float> getPageAbsRelevance(List<Page> pageList, List<IndexModel> indexModelList) {

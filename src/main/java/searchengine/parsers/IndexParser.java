@@ -57,7 +57,7 @@ public class IndexParser {
                     }
                 }
             } else {
-                log.info("Ошибочный статус - " + page.getCode());
+                log.error("Ошибочный статус - " + page.getCode());
             }
         }
     }

@@ -44,7 +44,7 @@ public class IndexingServiceImpl implements IndexingService{
     public ResponseEntity<?> indexingAllSites() {
         if (isIndexingActive()) {
             String errText = "Индексация уже запущена";
-            log.info(errText);
+            log.error(errText);
             return new ResponseEntity<>(new BadRequest(false, errText), HttpStatus.BAD_REQUEST);
         }
         List<Site> siteList = sitesList.getSites();
@@ -69,7 +69,7 @@ public class IndexingServiceImpl implements IndexingService{
             return new ResponseEntity<>(new Response(true), HttpStatus.OK);
         } else {
             String errText = "Недопустимый адрес сайта";
-            log.info(errText);
+            log.error(errText);
             return new ResponseEntity<>(new BadRequest(false, errText), HttpStatus.BAD_REQUEST);
         }
     }
@@ -82,7 +82,7 @@ public class IndexingServiceImpl implements IndexingService{
             return new ResponseEntity<>(new Response(true), HttpStatus.OK);
         }
         String errText = "Индексация не может быть остановлена, так как ещё не начата";
-        log.info(errText);
+        log.error(errText);
         return new ResponseEntity<>(new BadRequest(false, errText),HttpStatus.BAD_REQUEST);
     }
     private boolean isIndexingActive() {

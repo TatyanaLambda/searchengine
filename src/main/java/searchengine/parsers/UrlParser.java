@@ -32,7 +32,7 @@ public class UrlParser extends RecursiveTask<List<StatisticsPage>> {
             Thread.sleep(150);
             document = Jsoup.connect(url).followRedirects(true).maxBodySize(0).get();
         } catch (Exception e) {
-            log.debug("Невозможно получить доступ к сайту " + url);
+            log.error("Невозможно получить доступ к сайту " + url);
         }
         return document;
     }
@@ -60,7 +60,7 @@ public class UrlParser extends RecursiveTask<List<StatisticsPage>> {
             }
             taskList.forEach(ForkJoinTask::join);
         } catch (Exception e) {
-            log.debug("Ошибка парсинга - " + address);
+            log.error("Ошибка парсинга - " + address);
             StatisticsPage statisticsPage = new StatisticsPage(address, "", 500);
             statisticsPageList.add(statisticsPage);
         }
